@@ -59,6 +59,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -252,12 +253,11 @@ private fun StatusHeader(state: UiState, vm: SilencerViewModel) {
                     uncheckedTrackColor = Color(0xFFCBD5E1),
                     uncheckedBorderColor = Color(0xFF94A3B8)
                 ) else SwitchDefaults.colors(
-                    checkedThumbColor = white,
-                    checkedTrackColor = white.copy(alpha = 0.35f),
-                    uncheckedThumbColor = white,
-                    uncheckedTrackColor = white.copy(alpha = 0.25f),
-                    uncheckedBorderColor = white.copy(alpha = 0.6f),
-                    uncheckedTrackContentColor = white.copy(alpha = 0.9f)
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = Color.White.copy(alpha = 0.35f),
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color.White.copy(alpha = 0.25f),
+                    uncheckedBorderColor = Color.White.copy(alpha = 0.6f)
                 )
             )
         }
