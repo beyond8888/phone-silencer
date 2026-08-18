@@ -45,7 +45,7 @@ class SilencerApplication : Application() {
                 )
                 Log.d(TAG, "crash written: ${file.absolutePath}")
                 // 仅保留最近 5 个崩溃文件
-                val crashDir = file.parentDir
+                val crashDir = file.parentFile
                 crashDir?.listFiles { f -> f.name.startsWith("silencer_crash_") && f.name.endsWith(".txt") }
                     ?.sortedBy { it.name }
                     ?.dropLast(5)
