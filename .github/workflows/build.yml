@@ -21,7 +21,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install SDK packages
+      - name: Install SDK packages (cached)
         run: |
           yes | sdkmanager --licenses || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
@@ -30,8 +30,12 @@ jobs:
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: 8.9
-          cache-disabled: true
-          arguments: :app:assembleDebug --no-daemon
+          cache-disabled: false
+          cache-cleanup: on-success
+          arguments: :app:assembleDebug --no-daemon --console=plain
+        env:
+          ORG_GRADLE_PROJECT_kotlin_daemon_jvmargs: -Xmx2048m -Dfile.encoding=UTF-8
+          GRADLE_OPTS: -Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.daemon=false
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
