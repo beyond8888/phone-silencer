@@ -37,6 +37,11 @@ class MainActivity : ComponentActivity() {
                         "time=${Date()}\n" +
                         throwable.stackTraceToString()
                 )
+                // 仅保留最近 5 个崩溃文件，避免反复崩溃时无限膨胀
+                dir.listFiles { f -> f.name.startsWith("crash_") && f.name.endsWith(".txt") }
+                    ?.sortedBy { it.name }
+                    ?.dropLast(5)
+                    ?.forEach { it.delete() }
             }
             default?.uncaughtException(thread, throwable)
         }
