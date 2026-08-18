@@ -7,7 +7,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
-import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -165,14 +164,14 @@ class SilencerViewModel(app: Application) : AndroidViewModel(app) {
         controller.apply(s.silentNow, s.settings.silenceMode)
     }
 
-    fun openDndSettings() = openSettingsIntent(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+    fun openDndSettings() = openSettingsIntent(Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
 
     fun openBatterySettings() = openSettingsIntent(
-        Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${getApplication<Application>().packageName}"))
+        Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${getApplication<Application>().packageName}"))
     )
 
     fun openExactAlarmSettings() = openSettingsIntent(
-        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${getApplication<Application>().packageName}"))
+        Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${getApplication<Application>().packageName}"))
     )
 
     // ---- 私有 ----
