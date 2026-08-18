@@ -7,7 +7,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
-import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.silencer.app.alarm.AlarmScheduler
@@ -204,8 +203,4 @@ class SilencerViewModel(app: Application) : AndroidViewModel(app) {
         val am = getApplication<Application>().getSystemService(AlarmManager::class.java)
         return am.canScheduleExactAlarms()
     }
-
-    @Suppress("unused")
-    private fun notificationsGranted(): Boolean =
-        NotificationManagerCompat.from(getApplication()).areNotificationsEnabled()
 }

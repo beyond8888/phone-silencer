@@ -27,7 +27,8 @@ private val DarkColors = darkColorScheme(
 @Composable
 fun SilencerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    // 关闭动态取色：华为等 ROM 对 dynamicColorScheme 实现有兼容坑，易导致启动崩溃
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
