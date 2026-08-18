@@ -52,7 +52,7 @@ object AlarmScheduler {
             dayType = repo::dayType
         )
         if (next == null) return
-        val at = next.atZone(ZoneId.systemDefault()).toEpochMilli()
+        val at = next.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         try {
             am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
         } catch (_: SecurityException) {
