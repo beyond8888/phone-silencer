@@ -21,13 +21,16 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Accept SDK licenses
-        run: yes | sdkmanager --licenses || true
+      - name: Install SDK packages
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
       - name: Build debug APK
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: 8.9
+          cache-disabled: true
           arguments: :app:assembleDebug --no-daemon
 
       - name: Upload APK
