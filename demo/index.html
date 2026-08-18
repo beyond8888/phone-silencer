@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>智能静音 · 体验 Demo</title>
+<style>
+  :root {
+    --indigo: #4F46E5; --violet: #7C3AED;
+    --amber: #D97706; --orange: #F59E0B;
+    --slate: #64748B; --slate2: #94A3B8;
+    --red: #DC2626;
+    --text: #0F172A; --text2: #64748B; --text3: #94A3B8;
+    --bg: #F2F4F8; --card: #FFFFFF; --border: #EEF1F6;
+    --radius: 22px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+    padding: 18px 16px 40px; max-width: 560px; margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; padding: 0 4px; }
+  h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  header { margin-bottom: 14px; }
+  #helpBtn {
+    width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--card); color: var(--indigo); font-size: 16px; font-weight: 700;
+    box-shadow: 0 2px 8px rgba(15,23,42,.06);
+    transition: transform .15s;
+  }
+  #helpBtn:active { transform: scale(.94); }
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    padding: 18px; margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.04);
+  }
+  .card-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.2px; }
+
+  /* ===== 状态卡：所有状态统一紧凑条，颜色区分状态 ===== */
+  #statusCard {
+    position: relative;
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 16px; border-radius: 20px;
+    color: #fff; margin-bottom: 16px; overflow: hidden;
+    transition: background .35s ease, box-shadow .35s ease;
+    cursor: pointer;
+  }
+  #statusCard.silent {
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+    box-shadow: 0 8px 20px -6px rgba(79,70,229,.5);
+  }
+  #statusCard.ring {
+    background: linear-gradient(135deg, #EA580C 0%, #F59E0B 100%);
+    box-shadow: 0 8px 20px -6px rgba(234,88,12,.45);
+  }
+  #statusCard.off {
+    background: #F1F5F9; color: #475569;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.04);
+  }
+  #statusIcon {
+    width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;
+    background: rgba(255,255,255,.2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #statusCard.off #statusIcon { background: #E2E8F0; }
+  #statusIcon svg { width: 18px; height: 18px; color: #fff; }
+  #statusCard.off #statusIcon svg { color: #64748B; }
+  #statusText { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+  #statusSub { font-size: 12px; margin-top: 1px; opacity: .85; }
+  #statusCard.off #statusSub { color: #64748B; opacity: 1; }
+
+  .switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; border-radius: 26px; background: rgba(255,255,255,.32);
+    transition: .25s; cursor: pointer;
+  }
+  .slider::before {
+    content: ""; position: absolute; width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; transition: .25s;
+    box-shadow: 0 1px 4px rgba(0,0,0,.18);
+  }
+  .switch input:checked + .slider { background: rgba(255,255,255,.45); }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+  /* 停用态的开关：白底灰圈，区分激活态 */
+  #statusCard.off .switch .slider { background: #CBD5E1; }
+  #statusCard.off .switch input:checked + .slider { background: #94A3B8; }
+  /* 节假日开关：原生 switch 行为，不再套状态条样式 */
+  #holidaySwitch + .slider { background: #E2E8F0; }
+  #holidaySwitch:checked + .slider { background: var(--indigo); }
+  /* 关闭时标签文字降透明度，与开启态形成状态区分 */
+  .policyLabel { transition: opacity .2s; }
+  .policyLabel.dim { opacity: .45; }
+
+  .windowRow { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+  .timeGroup { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+  .timeGroup .tglabel { font-size: 12px; color: var(--text3); flex-shrink: 0; }
+  .windowRow select {
+    border: 1px solid var(--border); border-radius: 10px; padding: 7px 6px;
+    font-size: 14px; font-weight: 500; background: #F8FAFC; min-width: 0; color: var(--text);
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2394A3B8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat; background-position: right 8px center;
+    padding-right: 22px;
+  }
+  .windowRow .hh { flex: 1.25; }
+  .windowRow .mm { flex: 1; }
+  .windowRow .colon { color: var(--text2); font-weight: 600; flex-shrink: 0; }
+  .windowRow .sep { color: var(--text3); flex-shrink: 0; padding: 0 2px; }
+  .presetRow { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+  .btnDel {
+    border: none; background: none; color: var(--text3); font-size: 16px;
+    cursor: pointer; padding: 6px; border-radius: 8px; line-height: 1;
+    transition: background .15s, color .15s;
+  }
+  .btnDel:hover { background: #FEE2E2; color: var(--red); }
+  .btnAdd {
+    width: 100%; margin-top: 6px; padding: 12px; border-radius: 14px;
+    border: 1px dashed #C7D2FE; background: transparent; color: var(--indigo);
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s;
+  }
+  .btnAdd:hover { background: #EEF2FF; }
+  .hint { font-size: 12px; color: var(--text3); margin-top: 10px; }
+  /* 问号悬浮提示（桌面 hover / 触屏点击） */
+  .helpTip {
+    position: relative; display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 50%; background: #F1F5F9;
+    color: var(--text2); font-size: 11px; font-weight: 700; cursor: pointer;
+    vertical-align: middle; margin-left: 6px; user-select: none; flex-shrink: 0;
+  }
+  .helpTip .tip {
+    display: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%); background: #0F172A; color: #fff;
+    font-size: 12px; font-weight: 400; padding: 8px 10px; border-radius: 10px;
+    white-space: nowrap; z-index: 20; box-shadow: 0 8px 24px rgba(15,23,42,.25);
+  }
+  .helpTip .tip::after {
+    content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #0F172A;
+  }
+  .helpTip:hover .tip, .helpTip.open .tip { display: block; }
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .secLabel { font-size: 12px; color: var(--text2); margin: 10px 0 8px; font-weight: 500; }
+
+  .weekInline { display: flex; align-items: center; gap: 8px; }
+  .weekInline .weekLabel { font-size: 12px; color: var(--text2); font-weight: 500; flex-shrink: 0; }
+  .weekRow { display: flex; gap: 4px; flex: 1; min-width: 0; }
+  .weekRow .chip {
+    flex: 1; display: flex; justify-content: center; padding: 6px 2px;
+    border-radius: 10px; border: 1px solid var(--border);
+    background: #F8FAFC; font-size: 12px; cursor: pointer; transition: .15s; color: var(--text2);
+    white-space: nowrap;
+  }
+  .chip.on { background: linear-gradient(135deg, var(--indigo), var(--violet)); border-color: transparent; color: #fff; font-weight: 600; box-shadow: 0 4px 12px -2px rgba(79,70,229,.4); }
+  .presetRow .chip {
+    flex: none; display: inline-block; padding: 7px 12px; border-radius: 18px; font-size: 13px;
+    border: 1px solid var(--border); background: #F8FAFC; color: var(--text2);
+    cursor: pointer; transition: .15s;
+  }
+  .chip.on { background: linear-gradient(135deg, var(--indigo), var(--violet)); border-color: transparent; color: #fff; font-weight: 600; box-shadow: 0 4px 12px -2px rgba(79,70,229,.4); }
+
+  .settingRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
+  .settingRow .lbl { font-size: 14px; font-weight: 500; }
+  .settingRow .desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  .radioRow {
+    display: flex; gap: 12px; padding: 10px 12px; cursor: pointer; align-items: flex-start;
+    border-radius: 14px; border: 1px solid var(--border); margin-bottom: 8px; transition: all .15s;
+  }
+  .radioRow:hover { background: #F8FAFC; }
+  .radioRow.on { border-color: var(--indigo); background: #EEF2FF; }
+  .radioRow input { accent-color: var(--indigo); width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; }
+  .radioRow .rtitle { font-size: 14px; font-weight: 500; }
+  .radioRow .rdesc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  /* 高级折叠：默认隐藏 Ringer，点击“高级”展开 */
+  .advancedToggle {
+    display: inline-flex; align-items: center; gap: 3px;
+    margin-top: 10px; padding: 2px 0; cursor: pointer; font-size: 12px;
+    color: var(--text2); transition: color .15s; user-select: none;
+  }
+  .advancedToggle:hover { color: var(--indigo); }
+  .advancedToggle .caret { transition: transform .2s; font-size: 9px; opacity: .7; }
+  .advancedToggle.open .caret { transform: rotate(180deg); }
+  .advancedContent {
+    max-height: 0; overflow: hidden; transition: max-height .25s ease;
+  }
+  .advancedContent.open { max-height: 200px; }
+  /* 当 Ringer 被选中时，强制展开高级区域并标记提示 */
+  .ringerActiveNote { font-size: 12px; color: var(--amber); margin-top: 6px; display: none; }
+  .ringerActiveNote.show { display: block; }
+
+  .note { font-size: 12px; color: var(--text2); }
+  .error { color: var(--red); font-size: 12px; }
+
+  /* 规则弹窗 */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(15,23,42,.45);
+    display: flex; align-items: center; justify-content: center; z-index: 10;
+    padding: 24px; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+  .dialog {
+    background: #fff; border-radius: 22px; padding: 22px;
+    max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  }
+  .dialog h3 { font-size: 17px; margin-bottom: 12px; }
+  .dialog p { font-size: 14px; color: var(--text); padding: 4px 0; }
+  .dialog .muted { color: var(--text2); font-size: 12px; }
+  #dialogOk {
+    margin-top: 14px; width: 100%; padding: 10px; border: none; border-radius: 14px;
+    background: linear-gradient(135deg, var(--indigo), var(--violet)); color: #fff;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .dialog .btnRow { display: flex; gap: 8px; margin-top: 14px; }
+  .dialog .btnRow button {
+    flex: 1; padding: 10px; border: none; border-radius: 14px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  #confirmOk { background: linear-gradient(135deg, var(--indigo), var(--violet)); color: #fff; }
+  #confirmCancel { background: #EEF2FF; color: var(--indigo); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>智能静音</h1>
+  <button id="helpBtn" title="使用规则">?</button>
+</header>
+
+<div class="card" id="statusCard">
+  <div id="statusIcon"></div>
+  <div style="flex:1;min-width:0">
+    <div id="statusText">—</div>
+    <div id="statusSub">—</div>
+  </div>
+  <label class="switch" aria-label="总开关">
+    <input type="checkbox" id="masterSwitch">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div class="card">
+  <div class="card-title" style="display:flex;align-items:center">工作时间<span class="helpTip">?<span class="tip">支持跨天时段，如 22:00 — 06:00（次日 06:00 恢复）</span></span></div>
+  <div class="presetRow" id="presetRow"></div>
+  <div class="divider"></div>
+  <div id="windowList"></div>
+  <button class="btnAdd" id="btnAddWindow">＋ 添加时间段</button>
+  <div class="divider"></div>
+  <div class="weekInline">
+    <span class="weekLabel">生效星期</span>
+    <div class="weekRow" id="weekRow"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:0">
+    <span>静音策略</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);font-weight:400">
+      <span class="policyLabel" id="holidayLabel">法定节假日</span>
+      <label class="switch">
+        <input type="checkbox" id="holidaySwitch" checked>
+        <span class="slider"></span>
+      </label>
+    </span>
+  </div>
+  <div class="divider"></div>
+  <label class="radioRow" data-mode="dnd">
+    <input type="radio" name="mode" value="dnd" checked>
+    <div>
+      <div class="rtitle">勿扰模式 <span style="color:var(--indigo);font-size:12px">· 推荐</span></div>
+      <div class="rdesc">只允许闹钟，拦截通知与来电；需授权“通知使用权”</div>
+    </div>
+  </label>
+  <div class="advancedContent" id="advancedContent">
+    <label class="radioRow" data-mode="ringer" style="margin-top:8px">
+      <input type="radio" name="mode" value="ringer">
+      <div>
+        <div class="rtitle">静音铃声</div>
+        <div class="rdesc">仅把铃声调为静音，通知仍会响。部分国产系统上可能失效</div>
+      </div>
+    </label>
+  </div>
+  <div class="ringerActiveNote" id="ringerActiveNote">当前使用“静音铃声”，部分手机上可能不生效</div>
+  <div class="advancedToggle" id="advancedToggle">
+    <span id="advancedLabel">高级</span>
+    <span class="caret">▾</span>
+  </div>
+  <div class="note" id="holidayNote" style="margin-top:8px"></div>
+</div>
+
+<!-- 规则弹窗 -->
+<div class="overlay" id="rulesOverlay">
+  <div class="dialog">
+    <h3>使用规则</h3>
+    <p>· 勾选的星期 × 时间段内 → 自动静音</p>
+    <p>· 其余时间 → 恢复正常响铃</p>
+    <p>· 法定节假日 → 不静音</p>
+    <p>· 调休补班日（周末上班）→ 按工作日静音</p>
+    <p class="muted">· 节假日数据来自 timor.tech，超 7 天自动更新</p>
+    <p class="muted">· 当前已缓存：2026 年数据</p>
+    <button id="dialogOk">知道了</button>
+  </div>
+</div>
+<!-- 重叠确认弹窗 -->
+<div class="overlay" id="confirmOverlay">
+  <div class="dialog">
+    <h3>时间段重叠</h3>
+    <p id="confirmText"></p>
+    <div class="btnRow">
+      <button id="confirmCancel">取消</button>
+      <button id="confirmOk">仍然保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 2026 年节假日数据（timor.tech 真实数据，type: 2=节日 3=补班） ==========
+const HOLIDAY_DATA = {
+  "2026-01-01": 2, "2026-01-02": 2, "2026-01-03": 2, "2026-01-04": 3,
+  "2026-02-14": 3,
+  "2026-02-15": 2, "2026-02-16": 2, "2026-02-17": 2, "2026-02-18": 2,
+  "2026-02-19": 2, "2026-02-20": 2, "2026-02-21": 2, "2026-02-22": 2, "2026-02-23": 2,
+  "2026-02-28": 3,
+  "2026-04-04": 2, "2026-04-05": 2, "2026-04-06": 2,
+  "2026-05-01": 2, "2026-05-02": 2, "2026-05-03": 2, "2026-05-04": 2, "2026-05-05": 2,
+  "2026-05-09": 3,
+  "2026-06-19": 2, "2026-06-20": 2, "2026-06-21": 2,
+  "2026-09-20": 3,
+  "2026-09-25": 2, "2026-09-26": 2, "2026-09-27": 2,
+  "2026-10-01": 2, "2026-10-02": 2, "2026-10-03": 2, "2026-10-04": 2,
+  "2026-10-05": 2, "2026-10-06": 2, "2026-10-07": 2, "2026-10-10": 3
+};
+
+const WEEKDAY_NAMES = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]; // JS getDay(): 0=周日
+
+// ========== 状态 ==========
+let settings = {
+  enabled: true,
+  windows: [ {start: "09:00", end: "12:00"}, {start: "14:00", end: "18:00"} ],
+  weekdays: [1, 2, 3, 4, 5],
+  respectHolidays: true,
+  mode: "dnd"
+};
+let lastRenderState = ""; // 记录当前状态卡状态，状态变化时才重建界面
+
+const $ = id => document.getElementById(id);
+
+// ========== 核心判定（与 App 端 Kotlin 逻辑一一对应） ==========
+function dayType(d) {
+  const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const t = HOLIDAY_DATA[key];
+  if (t === 2) return "holiday";
+  if (t === 3) return "extra_workday";
+  const dow = d.getDay();
+  return (dow === 0 || dow === 6) ? "weekend" : "workday";
+}
+
+function toMin(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+function inWindow(minute, w) {
+  const s = toMin(w.start), e = toMin(w.end);
+  return s < e ? (minute >= s && minute < e) : (minute >= s || minute < e);
+}
+// 两个时间段是否有重叠时刻（含跨天，按 24h 环判定）
+function overlaps(a, b) {
+  return inWindow(toMin(b.start), a) || inWindow(toMin(a.start), b);
+}
+function isSilentAt(dt) {
+  if (!settings.enabled) return false;
+  if (!settings.windows.length || !settings.weekdays.length) return false;
+  if (settings.respectHolidays) {
+    const t = dayType(dt);
+    if (t === "holiday" || t === "weekend") return false;
+  }
+  const wd = dt.getDay() === 0 ? 7 : dt.getDay();
+  if (!settings.weekdays.includes(wd)) return false;
+  const minute = dt.getHours() * 60 + dt.getMinutes();
+  return settings.windows.some(w => inWindow(minute, w));
+}
+function nextTransition(now) {
+  if (!settings.enabled) return null;
+  const candidates = [];
+  for (let off = 0; off <= 10; off++) {
+    for (const w of settings.windows) {
+      const [sh, sm] = w.start.split(":").map(Number);
+      const [eh, em] = w.end.split(":").map(Number);
+      const sMin = sh * 60 + sm, eMin = eh * 60 + em;
+      const start = new Date(now); start.setDate(now.getDate() + off); start.setHours(sh, sm, 0, 0);
+      const end = new Date(now); end.setDate(now.getDate() + off + (sMin < eMin ? 0 : 1)); end.setHours(eh, em, 0, 0);
+      for (const t of [start, end]) {
+        if (t <= now) continue;
+        const before = isSilentAt(new Date(t.getTime() - 1000));
+        const after = isSilentAt(t);
+        if (before !== after) candidates.push(t);
+      }
+    }
+  }
+  return candidates.length ? candidates.reduce((a, b) => a < b ? a : b) : null;
+}
+
+// ========== 渲染 ==========
+function fmtTime(d) { return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); }
+
+function render() {
+  const now = new Date();
+  const silent = isSilentAt(now);
+  const card = $("statusCard");
+  const icon = $("statusIcon");
+  const txt = $("statusText");
+  card.classList.remove("off", "silent", "ring");
+  if (!settings.enabled) {
+    card.classList.add("off");
+    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 9-9 9-9-9 9-9z"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg>';
+    txt.textContent = "跟随系统";
+    $("statusSub").textContent = "铃声由系统控制，本应用不接管";
+  } else if (silent) {
+    card.classList.add("silent");
+    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+    txt.textContent = "静音中";
+    const next = nextTransition(now);
+    $("statusSub").textContent = next
+      ? `工作时间 · ${WEEKDAY_NAMES[next.getDay()]} ${fmtTime(next)} 恢复`
+      : "工作时间";
+  } else {
+    card.classList.add("ring");
+    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+    txt.textContent = "监听中";
+    const next = nextTransition(now);
+    $("statusSub").textContent = next
+      ? `已开启 · ${WEEKDAY_NAMES[next.getDay()]} ${fmtTime(next)} 静音`
+      : "已开启";
+  }
+  renderWindows();
+  renderWeekdays();
+  lastRenderState = settings.enabled ? (silent ? "silent" : "ring") : "off";
+}
+
+// 常用时间段快捷预设（点击即添加）
+const PRESETS = [
+  { label: "标准班", start: "09:00", end: "18:00" },
+  { label: "上午班", start: "09:00", end: "12:00" },
+  { label: "下午班", start: "14:00", end: "18:00" },
+  { label: "夜班", start: "22:00", end: "06:00" },
+  { label: "全天", start: "00:00", end: "23:59" }
+];
+
+function fillSelect(sel, count, selected) {
+  sel.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = String(i).padStart(2, "0");
+    if (i === selected) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function renderPresets() {
+  const row = $("presetRow");
+  row.innerHTML = "";
+  PRESETS.forEach(p => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.textContent = p.label;
+    chip.addEventListener("click", () => {
+      const dup = settings.windows.some(w => w.start === p.start && w.end === p.end);
+      if (dup) return;
+      const hit = settings.windows.find(w => overlaps(w, p));
+      const add = () => { settings.windows.push({ start: p.start, end: p.end }); save(); render(); };
+      if (hit) askConfirm(`该时段与 ${hit.start} — ${hit.end} 重叠，仍要添加吗？`, add);
+      else add();
+    });
+    row.appendChild(chip);
+  });
+}
+
+function renderWindows() {
+  const list = $("windowList");
+  list.innerHTML = "";
+  settings.windows.forEach((w, i) => {
+    const row = document.createElement("div");
+    row.className = "windowRow";
+    const [sh, sm] = w.start.split(":").map(Number);
+    const [eh, em] = w.end.split(":").map(Number);
+    row.innerHTML = `
+      <div class="timeGroup"><span class="tglabel">开始</span>
+        <select class="hh" data-i="${i}" data-field="sh"></select>
+        <span class="colon">:</span>
+        <select class="mm" data-i="${i}" data-field="sm"></select></div>
+      <span class="sep">—</span>
+      <div class="timeGroup"><span class="tglabel">结束</span>
+        <select class="hh" data-i="${i}" data-field="eh"></select>
+        <span class="colon">:</span>
+        <select class="mm" data-i="${i}" data-field="em"></select></div>
+      <button class="btnDel" data-i="${i}">✕</button>`;
+    fillSelect(row.querySelector('[data-field="sh"]'), 24, sh);
+    fillSelect(row.querySelector('[data-field="sm"]'), 60, sm);
+    fillSelect(row.querySelector('[data-field="eh"]'), 24, eh);
+    fillSelect(row.querySelector('[data-field="em"]'), 60, em);
+    row.querySelectorAll("select").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const idx = +sel.dataset.i;
+        const g = sel.closest(".windowRow");
+        const get = f => g.querySelector(`select[data-field="${f}"]`).value.padStart(2, "0");
+        const candidate = { start: get("sh") + ":" + get("sm"), end: get("eh") + ":" + get("em") };
+        const hit = settings.windows.find((w, j) => j !== idx && overlaps(w, candidate));
+        const apply = () => { settings.windows[idx] = candidate; save(); render(); };
+        if (hit) { askConfirm(`该时段与 ${hit.start} — ${hit.end} 重叠，仍要保存吗？`, apply); render(); }
+        else apply();
+      });
+    });
+    row.querySelector(".btnDel").addEventListener("click", () => {
+      settings.windows.splice(i, 1);
+      save(); render();
+    });
+    list.appendChild(row);
+  });
+}
+
+function renderWeekdays() {
+  const row = $("weekRow");
+  row.innerHTML = "";
+  ["周一","周二","周三","周四","周五","周六","周日"].forEach((name, i) => {
+    const wd = i + 1;
+    const chip = document.createElement("div");
+    chip.className = "chip" + (settings.weekdays.includes(wd) ? " on" : "");
+    chip.textContent = name;
+    chip.addEventListener("click", () => {
+      const idx = settings.weekdays.indexOf(wd);
+      if (idx >= 0) settings.weekdays.splice(idx, 1); else settings.weekdays.push(wd);
+      save(); render();
+    });
+    row.appendChild(chip);
+  });
+}
+
+// ========== 事件 ==========
+// 问号提示：触屏点击切换显示，点空白处关闭
+document.querySelectorAll(".helpTip").forEach(t => {
+  t.addEventListener("click", e => { e.stopPropagation(); t.classList.toggle("open"); });
+});
+document.addEventListener("click", () => {
+  document.querySelectorAll(".helpTip.open").forEach(t => t.classList.remove("open"));
+});
+$("masterSwitch").addEventListener("change", e => { settings.enabled = e.target.checked; save(); render(); });
+$("holidaySwitch").addEventListener("change", e => {
+  settings.respectHolidays = e.target.checked;
+  $("holidayLabel").classList.toggle("dim", !e.target.checked);
+  save(); render();
+});
+document.querySelectorAll('input[name=mode]').forEach(r => {
+  r.addEventListener("change", () => {
+    settings.mode = document.querySelector('input[name=mode]:checked').value;
+    document.querySelectorAll('.radioRow').forEach(row => {
+      row.classList.toggle("on", row.querySelector('input').checked);
+    });
+    // Ringer 被选中时强制展开高级区域并提示；切回 DND 时保持展开（让用户能看清当前选择）
+    if (settings.mode === "ringer") {
+      $("advancedContent").classList.add("open");
+      $("advancedToggle").classList.add("open");
+      $("advancedLabel").textContent = "高级";
+      $("ringerActiveNote").classList.add("show");
+    } else {
+      $("ringerActiveNote").classList.remove("show");
+    }
+    $("holidayNote").textContent = settings.mode === "dnd"
+      ? "App 端勿扰模式需在系统设置中授予“通知使用权”" : "铃声静音在部分国产系统上可能受限，勿扰模式更稳";
+    save();
+  });
+});
+// 高级区域展开/收起
+$("advancedToggle").addEventListener("click", () => {
+  const content = $("advancedContent");
+  const toggle = $("advancedToggle");
+  content.classList.toggle("open");
+  toggle.classList.toggle("open");
+});
+$("btnAddWindow").addEventListener("click", () => {
+  const c = { start: "09:00", end: "12:00" };
+  const hit = settings.windows.find(w => overlaps(w, c));
+  const add = () => { settings.windows.push(c); save(); render(); };
+  if (hit) askConfirm(`该时段与 ${hit.start} — ${hit.end} 重叠，仍要添加吗？`, add);
+  else add();
+});
+$("statusCard").addEventListener("click", e => {
+  if (e.target.closest(".switch")) return; // 点开关不触发布局切换
+  settings.enabled = !settings.enabled;
+  $("masterSwitch").checked = settings.enabled;
+  save(); render();
+});
+$("helpBtn").addEventListener("click", () => $("rulesOverlay").classList.add("show"));
+$("dialogOk").addEventListener("click", () => $("rulesOverlay").classList.remove("show"));
+$("rulesOverlay").addEventListener("click", e => { if (e.target === $("rulesOverlay")) $("rulesOverlay").classList.remove("show"); });
+
+// ========== 重叠确认弹窗 ==========
+let confirmCb = null;
+function askConfirm(msg, onOk) {
+  $("confirmText").textContent = msg;
+  confirmCb = onOk;
+  $("confirmOverlay").classList.add("show");
+}
+$("confirmOk").addEventListener("click", () => {
+  $("confirmOverlay").classList.remove("show");
+  const cb = confirmCb; confirmCb = null; if (cb) cb();
+});
+$("confirmCancel").addEventListener("click", () => {
+  $("confirmOverlay").classList.remove("show"); confirmCb = null;
+});
+$("confirmOverlay").addEventListener("click", e => {
+  if (e.target === $("confirmOverlay")) { $("confirmOverlay").classList.remove("show"); confirmCb = null; }
+});
+
+// ========== 持久化 & 时钟 ==========
+function save() {
+  try { localStorage.setItem("silencer-demo", JSON.stringify(settings)); } catch (e) {}
+}
+function load() {
+  try {
+    const raw = localStorage.getItem("silencer-demo");
+    if (raw) settings = Object.assign(settings, JSON.parse(raw));
+  } catch (e) {}
+}
+
+function tick() {
+  // 每秒检测静音状态是否翻转，翻转时才重建界面
+  const now = new Date();
+  const st = settings.enabled ? (isSilentAt(now) ? "silent" : "ring") : "off";
+  if (st !== lastRenderState) { lastRenderState = st; render(); }
+}
+
+// 启动
+load();
+$("masterSwitch").checked = settings.enabled;
+$("holidaySwitch").checked = settings.respectHolidays;
+$("holidayLabel").classList.toggle("dim", !settings.respectHolidays);
+document.querySelector(`input[name=mode][value=${settings.mode}]`).checked = true;
+document.querySelectorAll('.radioRow').forEach(row => {
+  row.classList.toggle("on", row.querySelector('input').checked);
+});
+// 如果之前选了 Ringer，启动时展开高级区域并提示
+if (settings.mode === "ringer") {
+  $("advancedContent").classList.add("open");
+  $("advancedToggle").classList.add("open");
+  $("ringerActiveNote").classList.add("show");
+}
+$("holidayNote").textContent = settings.mode === "dnd"
+  ? "App 端勿扰模式需在系统设置中授予“通知使用权”" : "铃声静音在部分国产系统上可能受限，勿扰模式更稳";
+renderPresets();
+render();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
